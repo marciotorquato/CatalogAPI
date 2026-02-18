@@ -26,6 +26,14 @@ public class UsuarioGameBibliotecaConfiguration : IEntityTypeConfiguration<Usuar
         builder.Property(ugb => ugb.DataAquisicao)
                .IsRequired();
 
+        builder.Property(ugb => ugb.Status)
+               .IsRequired()
+               .HasMaxLength(50)
+               .HasDefaultValue("EmProcessamento");
+
+        builder.Property(ugb => ugb.DataAtualizacaoStatus)
+               .IsRequired(false);
+
         builder.Property(c => c.UsuarioId)
                .IsRequired();
 
@@ -37,5 +45,6 @@ public class UsuarioGameBibliotecaConfiguration : IEntityTypeConfiguration<Usuar
 
         // Índices
         builder.HasIndex(ugb => new { ugb.UsuarioId, ugb.GameId }).IsUnique();
+        builder.HasIndex(ugb => ugb.Status);
     }
 }

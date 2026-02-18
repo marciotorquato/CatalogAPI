@@ -32,7 +32,7 @@ public static class UsuarioGameBibliotecaEndpoints
             }
             return ApiResponses.Created($"/api/usuarios/{usuarioId}/biblioteca/{biblioteca!.Id}", biblioteca, "Jogo comprado e adicionado à biblioteca com sucesso.");
         })
-        .RequireAuthorization(policy => policy.RequireRole("usuario"))
+        //.RequireAuthorization(policy => policy.RequireRole("usuario"))
         .AddEndpointFilter<ValidationEndpointFilter<ComprarGameRequest>>()
         .WithName("ComprarGame")
         .Produces<BibliotecaResponse>(201)
