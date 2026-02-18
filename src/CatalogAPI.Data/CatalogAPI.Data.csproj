@@ -26,4 +26,8 @@
 	  <ProjectReference Include="..\CatalogAPI.Domain\CatalogAPI.Domain.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Migrations\" />
+	</ItemGroup>
+
 </Project>
