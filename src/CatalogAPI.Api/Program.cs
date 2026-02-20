@@ -18,6 +18,9 @@ builder.Services.AddDomainServices();
 builder.Services.AddRepositories();
 builder.Host.UseSerilog();
 
+// configuração do kafka
+builder.Services.AddKafkaMessaging(builder.Configuration);
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())

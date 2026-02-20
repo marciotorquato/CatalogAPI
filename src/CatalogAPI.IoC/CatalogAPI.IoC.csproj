@@ -23,6 +23,7 @@
 	  <ProjectReference Include="..\CatalogAPI.Authentication\CatalogAPI.Authentication.csproj" />
 	  <ProjectReference Include="..\CatalogAPI.Data\CatalogAPI.Data.csproj" />
 	  <ProjectReference Include="..\CatalogAPI.Domain\CatalogAPI.Domain.csproj" />
+	  <ProjectReference Include="..\CatalogAPI.Messaging\CatalogAPI.Messaging.csproj" />
 	</ItemGroup>
 
 </Project>

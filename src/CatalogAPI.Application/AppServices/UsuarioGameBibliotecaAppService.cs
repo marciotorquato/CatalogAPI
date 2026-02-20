@@ -2,7 +2,9 @@
 using CatalogAPI.Domain.Dtos.Request.UsuarioGameBiblioteca;
 using CatalogAPI.Domain.Dtos.Responses.UsuarioGameBiblioteca;
 using CatalogAPI.Domain.Entities;
+using CatalogAPI.Domain.Events;
 using CatalogAPI.Domain.Exceptions;
+using CatalogAPI.Domain.Interfaces.Events;
 using CatalogAPI.Domain.Interfaces.Services;
 using Microsoft.Extensions.Logging;
 
@@ -12,15 +14,18 @@ public class UsuarioGameBibliotecaAppService : IUsuarioGameBibliotecaAppService
 {
     private readonly IUsuarioGameBibliotecaService _bibliotecaService;
     private readonly IGameService _gameService;
+    private readonly IEventPublisher _eventPublisher;
     private readonly ILogger<UsuarioGameBibliotecaAppService> _logger;
 
     public UsuarioGameBibliotecaAppService(
         IUsuarioGameBibliotecaService bibliotecaService,
         IGameService gameService,
+        IEventPublisher eventPublisher,
         ILogger<UsuarioGameBibliotecaAppService> logger)
     {
         _bibliotecaService = bibliotecaService;
         _gameService = gameService;
+        _eventPublisher = eventPublisher;
         _logger = logger;
     }
 
@@ -73,12 +78,34 @@ public class UsuarioGameBibliotecaAppService : IUsuarioGameBibliotecaAppService
             PrecoAquisicao = request.PrecoAquisicao,
             DataAquisicao = request.DataAquisicao
         };
+
         var (bibliotecaComprada, sucesso, errorMessage) = await _bibliotecaService.ComprarGame(biblioteca);
+
         if (!sucesso || bibliotecaComprada == null)
         {
             _logger.LogWarning("Falha na compra do jogo | UsuarioId: {UsuarioId} | GameId: {GameId} | Erro: {ErrorMessage}", request.UsuarioId, request.GameId, errorMessage);
             return (null, false, errorMessage);
         }
+
+        // publicar evento no kafka
+        try
+        {
+            var orderEvent = new OrderPlacedEvent
+            {
+                UsuarioId = bibliotecaComprada.UsuarioId,
+                GameId = bibliotecaComprada.GameId,
+                PrecoAquisicao = bibliotecaComprada.PrecoAquisicao,
+                DataCompra = bibliotecaComprada.DataAquisicao ?? DateTimeOffset.UtcNow
+            };
+
+            await _eventPublisher.PublishOrderPlacedAsync(orderEvent);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao publicar evento de compra | BibliotecaId: {BibliotecaId}", bibliotecaComprada.Id);
+        }
+
+
         var response = new BibliotecaResponse
         {
             Id = bibliotecaComprada.Id,
