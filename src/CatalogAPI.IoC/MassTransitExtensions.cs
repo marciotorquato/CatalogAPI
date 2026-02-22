@@ -9,26 +9,41 @@ namespace CatalogAPI.IoC;
 
 public static class MassTransitExtensions
 {
-    public static IServiceCollection AddKafkaMessaging(
+    public static IServiceCollection AddRabbitMQMessaging(
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // Registrar o inicializador
+        services.AddSingleton<RabbitMQInitializer>();
+
         services.AddMassTransit(x =>
         {
-            x.UsingInMemory((context, cfg) => cfg.ConfigureEndpoints(context));
-
-            x.AddRider(rider =>
+            x.UsingRabbitMq((context, cfg) =>
             {
-                rider.AddProducer<OrderPlacedEvent>("order-placed-topic");
-
-                rider.UsingKafka((context, k) =>
+                cfg.Host(configuration["RabbitMQ:Host"] ?? "localhost", "/", h =>
                 {
-                    k.Host(configuration["Kafka:BootstrapServers"] ?? "localhost:9092");
+                    h.Username(configuration["RabbitMQ:Username"] ?? "admin");
+                    h.Password(configuration["RabbitMQ:Password"] ?? "admin");
                 });
+
+                // Apenas configurar a exchange para publicação
+                cfg.Message<OrderPlacedEvent>(e =>
+                {
+                    e.SetEntityName(configuration["RabbitMQ:Exchanges:OrderPlaced"] ?? "order-placed-exchange");
+                });
+
+                cfg.Publish<OrderPlacedEvent>(e =>
+                {
+                    e.ExchangeType = "fanout";
+                    e.Durable = true;
+                });
+
+                // NÃO criar ReceiveEndpoint!
+                cfg.ConfigureEndpoints(context);
             });
         });
 
-        services.AddScoped<IEventPublisher, KafkaEventPublisher>();
+        services.AddScoped<IEventPublisher, RabbitMQEventPublisher>();
 
         return services;
     }
