@@ -28,42 +28,70 @@ public class RabbitMQInitializer
 
         try
         {
-            // ✅ Versão assíncrona (RabbitMQ.Client 6.0+)
             await using var connection = await factory.CreateConnectionAsync();
             await using var channel = await connection.CreateChannelAsync();
 
-            // Criar Exchange
-            var exchangeName = _configuration["RabbitMQ:Exchanges:OrderPlaced"] ?? "order-placed-exchange";
+            // ===== CONFIGURAÇÃO PARA PUBLICAR (OrderPlaced) =====
+            var orderPlacedExchange = _configuration["RabbitMQ:Exchanges:OrderPlaced"] ?? "order-placed-exchange";
             await channel.ExchangeDeclareAsync(
-                exchange: exchangeName,
+                exchange: orderPlacedExchange,
                 type: ExchangeType.Fanout,
                 durable: true,
                 autoDelete: false,
                 arguments: null
             );
 
-            // Criar Queue
-            var queueName = "order-placed-queue";
+            var orderPlacedQueue = "order-placed-queue";
             await channel.QueueDeclareAsync(
-                queue: queueName,
+                queue: orderPlacedQueue,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
                 arguments: null
             );
 
-            // Vincular Queue à Exchange
             await channel.QueueBindAsync(
-                queue: queueName,
-                exchange: exchangeName,
+                queue: orderPlacedQueue,
+                exchange: orderPlacedExchange,
                 routingKey: "",
                 arguments: null
             );
 
             _logger.LogInformation(
-                "RabbitMQ inicializado com sucesso | Exchange: {Exchange} | Queue: {Queue}",
-                exchangeName,
-                queueName);
+                "RabbitMQ OrderPlaced configurado | Exchange: {Exchange} | Queue: {Queue}",
+                orderPlacedExchange,
+                orderPlacedQueue);
+
+            // ===== CONFIGURAÇÃO PARA CONSUMIR (PaymentProcessed) =====
+            var paymentProcessedExchange = _configuration["RabbitMQ:Exchanges:PaymentProcessed"] ?? "payment-processed-exchange";
+            await channel.ExchangeDeclareAsync(
+                exchange: paymentProcessedExchange,
+                type: ExchangeType.Fanout,
+                durable: true,
+                autoDelete: false,
+                arguments: null
+            );
+
+            var paymentProcessedQueue = "payment-processed-queue";
+            await channel.QueueDeclareAsync(
+                queue: paymentProcessedQueue,
+                durable: true,
+                exclusive: false,
+                autoDelete: false,
+                arguments: null
+            );
+
+            await channel.QueueBindAsync(
+                queue: paymentProcessedQueue,
+                exchange: paymentProcessedExchange,
+                routingKey: "",
+                arguments: null
+            );
+
+            _logger.LogInformation(
+                "RabbitMQ PaymentProcessed configurado | Exchange: {Exchange} | Queue: {Queue}",
+                paymentProcessedExchange,
+                paymentProcessedQueue);
         }
         catch (Exception ex)
         {
