@@ -45,7 +45,7 @@ public class RabbitMQConsumer : BackgroundService
             _connection = await factory.CreateConnectionAsync(stoppingToken);
             _channel = await _connection.CreateChannelAsync(cancellationToken: stoppingToken);
 
-            var queueName = "payment-processed-queue";
+            var queueName = "payment-processed-queue-catalog";
 
             // Configurar QoS
             await _channel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false);

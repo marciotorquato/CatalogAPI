@@ -64,6 +64,8 @@ public class RabbitMQInitializer
 
             // ===== CONFIGURAÇÃO PARA CONSUMIR (PaymentProcessed) =====
             var paymentProcessedExchange = _configuration["RabbitMQ:Exchanges:PaymentProcessed"] ?? "payment-processed-exchange";
+
+            // ✅ NÃO criar a exchange aqui, apenas garantir que ela existe
             await channel.ExchangeDeclareAsync(
                 exchange: paymentProcessedExchange,
                 type: ExchangeType.Fanout,
@@ -72,9 +74,10 @@ public class RabbitMQInitializer
                 arguments: null
             );
 
-            var paymentProcessedQueue = "payment-processed-queue";
+            // ✅ FILA ESPECÍFICA DO CatalogAPI
+            var catalogQueue = "payment-processed-queue-catalog";
             await channel.QueueDeclareAsync(
-                queue: paymentProcessedQueue,
+                queue: catalogQueue,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
@@ -82,7 +85,7 @@ public class RabbitMQInitializer
             );
 
             await channel.QueueBindAsync(
-                queue: paymentProcessedQueue,
+                queue: catalogQueue,
                 exchange: paymentProcessedExchange,
                 routingKey: "",
                 arguments: null
@@ -91,7 +94,7 @@ public class RabbitMQInitializer
             _logger.LogInformation(
                 "RabbitMQ PaymentProcessed configurado | Exchange: {Exchange} | Queue: {Queue}",
                 paymentProcessedExchange,
-                paymentProcessedQueue);
+                catalogQueue);
         }
         catch (Exception ex)
         {
