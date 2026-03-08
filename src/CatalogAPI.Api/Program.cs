@@ -28,7 +28,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerDocumentation();
 }
 
-// Inicializar RabbitMQ de forma assíncrona
+// Inicializar RabbitMQ de forma assï¿½ncrona
 try
 {
     using var scope = app.Services.CreateScope();
@@ -38,6 +38,22 @@ try
 catch (Exception ex)
 {
     Log.Fatal(ex, "Erro ao inicializar RabbitMQ");
+    throw;
+}
+
+
+//rodar migrations Auto.
+try
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<CatalogApiDbContext>();
+    db.Database.Migrate();
+
+    Log.Information("Migrations aplicadas com sucesso.");
+}
+catch(Exception ex)
+{
+    Log.Information(ex, "Erro ao aplicar migrations");
     throw;
 }
 
