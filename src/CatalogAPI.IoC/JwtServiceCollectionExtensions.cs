@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -42,6 +43,34 @@ public static class JwtServiceCollectionExtensions
                     IssuerSigningKey = new SymmetricSecurityKey(
                         Encoding.UTF8.GetBytes(secret)),
                     ClockSkew = TimeSpan.Zero
+                };
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = ctx =>
+                    {
+                        var logger = ctx.HttpContext.RequestServices
+                            .GetRequiredService<ILogger<JwtBearerEvents>>();
+                        logger.LogWarning("[JWT] OnMessageReceived | Authorization header presente={HasHeader} | Token extraído={HasToken}",
+                            ctx.Request.Headers.ContainsKey("Authorization"),
+                            !string.IsNullOrEmpty(ctx.Token));
+                        return Task.CompletedTask;
+                    },
+                    OnAuthenticationFailed = ctx =>
+                    {
+                        var logger = ctx.HttpContext.RequestServices
+                            .GetRequiredService<ILogger<JwtBearerEvents>>();
+                        logger.LogWarning("[JWT] OnAuthenticationFailed: {Error} | ValidIssuer={Issuer} | ValidAudience={Audience}",
+                            ctx.Exception.Message, issuer, audience);
+                        return Task.CompletedTask;
+                    },
+                    OnChallenge = ctx =>
+                    {
+                        var logger = ctx.HttpContext.RequestServices
+                            .GetRequiredService<ILogger<JwtBearerEvents>>();
+                        logger.LogWarning("[JWT] OnChallenge (401 emitido): Error={Error} | ErrorDescription={Description}",
+                            ctx.Error, ctx.ErrorDescription);
+                        return Task.CompletedTask;
+                    }
                 };
             });
         services.AddAuthorization();

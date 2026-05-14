@@ -17,7 +17,7 @@ public static class UsuarioGameBibliotecaEndpoints
             var biblioteca = await bibliotecaService.ListarPorUsuario(usuarioId);
             return ApiResponses.Ok(biblioteca, "Biblioteca listada com sucesso.");
         })
-        //.RequireAuthorization(policy => policy.RequireRole("usuario"))
+        .RequireAuthorization(policy => policy.RequireRole("usuario"))
         .WithName("ListarBibliotecaDoUsuario")
         .Produces<List<BibliotecaResponse>>(200);
 
@@ -32,7 +32,7 @@ public static class UsuarioGameBibliotecaEndpoints
             }
             return ApiResponses.Created($"/api/usuarios/{usuarioId}/biblioteca/{biblioteca!.Id}", biblioteca, "Jogo comprado e adicionado à biblioteca com sucesso.");
         })
-        //.RequireAuthorization(policy => policy.RequireRole("usuario"))
+        .RequireAuthorization(policy => policy.RequireRole("usuario"))
         .AddEndpointFilter<ValidationEndpointFilter<ComprarGameRequest>>()
         .WithName("ComprarGame")
         .Produces<BibliotecaResponse>(201)
@@ -53,7 +53,7 @@ public static class UsuarioGameBibliotecaEndpoints
             }
             return ApiResponses.Ok(biblioteca, "Item da biblioteca atualizado com sucesso.");
         })
-        //.RequireAuthorization(policy => policy.RequireRole("usuario"))
+        .RequireAuthorization(policy => policy.RequireRole("usuario"))
         .AddEndpointFilter<ValidationEndpointFilter<AtualizarBibliotecaRequest>>()
         .WithName("AtualizarBiblioteca")
         .Produces<BibliotecaResponse>(200)
@@ -70,7 +70,7 @@ public static class UsuarioGameBibliotecaEndpoints
             }
             return ApiResponses.OkMessage("Jogo removido da biblioteca com sucesso.");
         })
-        //.RequireAuthorization(policy => policy.RequireRole("usuario"))
+        .RequireAuthorization(policy => policy.RequireRole("usuario"))
         .WithName("DeletarDaBiblioteca")
         .Produces(200)
         .Produces(404);
