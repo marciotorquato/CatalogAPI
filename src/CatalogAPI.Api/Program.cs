@@ -4,6 +4,7 @@ using CatalogAPI.Data;
 using CatalogAPI.IoC;
 using CatalogAPI.Messaging;
 using Microsoft.EntityFrameworkCore;
+using Prometheus;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -60,10 +61,12 @@ catch(Exception ex)
 app.UseMiddleware<LoggingMiddleware>();
 app.UseSerilogRequestLoggingConfiguration();
 app.UseHttpsRedirection();
+app.UseHttpMetrics();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
+app.MapMetrics();
 app.MapControllers();
 app.MapGames();
 app.MapUsuarioGameBiblioteca();
