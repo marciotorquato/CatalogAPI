@@ -12,6 +12,7 @@ public static class ApplicationServiceCollectionExtensions
     {
         services.AddScoped<IGameAppService, GameAppService>();
         services.AddScoped<IUsuarioGameBibliotecaAppService, UsuarioGameBibliotecaAppService>();
+        services.AddScoped<IGameRatingAppService, GameRatingAppService>();
         return services;
     }
 }

@@ -12,6 +12,7 @@ public static class DomainServiceCollectionExtensions
     {
         services.AddScoped<IGameService, GamesServices>();
         services.AddScoped<IUsuarioGameBibliotecaService, UsuarioGameBibliotecaServices>();
+        services.AddScoped<IGameRatingService, GameRatingService>();
         return services;
     }
 }
