@@ -9,4 +9,3 @@ data:
   Jwt__Issuer: "OrchestrationAPI"
   Jwt__Audience: "https://api.OrchestrationAPI.com"
   Serilog__MinimumLevel__Default: "Debug"
-  Serilog__WriteTo__0__Args__databaseUrl: "mongodb://root:root@mongodb-service:27017/logs_dev?authSource=admin"
