@@ -14,8 +14,9 @@ spec:
     spec:
       containers:
         - name: catalog-api
-          image: orchestrationapi-catalog-api:latest
-          imagePullPolicy: Never
+          # Substituído automaticamente pela pipeline (kubectl set image) a cada deploy.
+          image: fcgacr.azurecr.io/fcg-catalog-api:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:

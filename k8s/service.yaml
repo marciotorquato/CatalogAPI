@@ -9,5 +9,4 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 8080
-      nodePort: 30002
-  type: NodePort
+  type: ClusterIP # acesso externo só via Kong (kong-proxy, exposto como LoadBalancer)

@@ -1,0 +1,128 @@
+name: CI/CD - CatalogAPI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write # necessário para autenticação OIDC na Azure
+  contents: read
+  security-events: write # necessário para publicar o resultado do scan de vulnerabilidades
+
+env:
+  DOTNET_VERSION: "9.0.x"
+  ACR_REPOSITORY: fcg-catalog-api
+  K8S_DEPLOYMENT: catalog-api
+  K8S_CONTAINER: catalog-api
+
+jobs:
+  build-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore CatalogAPI.sln
+
+      - name: Build
+        run: dotnet build CatalogAPI.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test CatalogAPI.sln --configuration Release --no-build --verbosity normal
+
+  build-push:
+    name: Build & Push Docker Image
+    needs: build-test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.image-tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve image tag
+        id: meta
+        run: echo "image-tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to ACR
+        run: az acr login --name "${{ vars.ACR_LOGIN_SERVER }}"
+
+      - name: Build image
+        run: |
+          docker build \
+            -t "${{ vars.ACR_LOGIN_SERVER }}/${{ env.ACR_REPOSITORY }}:${{ steps.meta.outputs.image-tag }}" \
+            -t "${{ vars.ACR_LOGIN_SERVER }}/${{ env.ACR_REPOSITORY }}:latest" \
+            .
+
+      - name: Scan image for vulnerabilities (Trivy)
+        uses: aquasecurity/trivy-action@0.28.0
+        continue-on-error: true # Security Scan é "Desejável" na Fase 4 — não bloqueia o deploy
+        with:
+          image-ref: "${{ vars.ACR_LOGIN_SERVER }}/${{ env.ACR_REPOSITORY }}:${{ steps.meta.outputs.image-tag }}"
+          format: sarif
+          output: trivy-results.sarif
+          severity: "CRITICAL,HIGH"
+
+      - name: Upload Trivy results to GitHub Security
+        if: always()
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Push image to ACR
+        run: |
+          docker push "${{ vars.ACR_LOGIN_SERVER }}/${{ env.ACR_REPOSITORY }}:${{ steps.meta.outputs.image-tag }}"
+          docker push "${{ vars.ACR_LOGIN_SERVER }}/${{ env.ACR_REPOSITORY }}:latest"
+
+  deploy:
+    name: Deploy to AKS (Rolling Update)
+    needs: build-push
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get AKS credentials
+        run: |
+          az aks get-credentials \
+            --resource-group "${{ vars.AKS_RESOURCE_GROUP }}" \
+            --name "${{ vars.AKS_CLUSTER_NAME }}" \
+            --overwrite-existing
+
+      - name: Install kubelogin
+        run: az aks install-cli --only-show-errors
+
+      - name: Convert kubeconfig (cluster usa Azure RBAC)
+        run: kubelogin convert-kubeconfig -l azurecli
+
+      - name: Rolling update
+        run: |
+          kubectl set image deployment/${{ env.K8S_DEPLOYMENT }} \
+            ${{ env.K8S_CONTAINER }}=${{ vars.ACR_LOGIN_SERVER }}/${{ env.ACR_REPOSITORY }}:${{ needs.build-push.outputs.image-tag }}
+
+      - name: Wait for rollout
+        run: kubectl rollout status deployment/${{ env.K8S_DEPLOYMENT }} --timeout=180s
