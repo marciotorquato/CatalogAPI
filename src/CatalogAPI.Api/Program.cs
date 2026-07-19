@@ -71,5 +71,6 @@ app.MapControllers();
 app.MapGames();
 app.MapUsuarioGameBiblioteca();
 app.MapGameRatings();
+app.MapSearch();
 
 app.Run();

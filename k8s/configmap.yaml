@@ -9,3 +9,4 @@ data:
   Jwt__Issuer: "OrchestrationAPI"
   Jwt__Audience: "https://api.OrchestrationAPI.com"
   Serilog__MinimumLevel__Default: "Debug"
+  Elasticsearch__Uri: "http://elasticsearch-service:9200"

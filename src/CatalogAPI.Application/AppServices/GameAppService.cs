@@ -11,13 +11,16 @@ namespace CatalogAPI.Application.AppServices;
 public class GameAppService : IGameAppService
 {
     private readonly IGameService _gameService;
+    private readonly ISearchService _searchService;
     private readonly ILogger<GameAppService> _logger;
 
     public GameAppService(
         IGameService gameService,
+        ISearchService searchService,
         ILogger<GameAppService> logger)
     {
         _gameService = gameService ?? throw new ArgumentNullException(nameof(gameService));
+        _searchService = searchService ?? throw new ArgumentNullException(nameof(searchService));
         _logger = logger;
     }
 
@@ -25,6 +28,11 @@ public class GameAppService : IGameAppService
     {
         var game = Game.Criar(request.Nome, request.Descricao, request.Genero, request.Desenvolvedor, request.Preco, request.DataRelease);
         var gameCriado = await _gameService.Insert(game);
+
+        // Sincroniza o índice de busca sempre que um jogo é inserido no
+        // banco principal (exigência da Fase 4).
+        await _searchService.IndexarAsync(gameCriado);
+
         return gameCriado;
     }
 
@@ -101,6 +109,11 @@ public class GameAppService : IGameAppService
             _logger.LogWarning("Falha ao atualizar game ou game não encontrado | GameId: {GameId} | Request: {@Request}", request.Id, request);
             return (null, false);
         }
+
+        // Sincroniza o índice de busca sempre que um jogo é editado no
+        // banco principal (exigência da Fase 4).
+        await _searchService.IndexarAsync(gameAtualizado);
+
         var response = new AtualizarGameResponse
         {
             Id = gameAtualizado.Id,
