@@ -20,7 +20,7 @@ public class SearchAppService : ISearchAppService
             throw new DomainException("O termo de busca é obrigatório.");
         }
 
-        var resultados = await _searchService.BuscarAsync(request.Termo, request.Take);
+        var resultados = await _searchService.BuscarAsync(request.Termo, request.Take ?? 20);
 
         // A ordem já reflete a relevância (_score do Elasticsearch) — não
         // reordena aqui, só mapeia pra Response.
