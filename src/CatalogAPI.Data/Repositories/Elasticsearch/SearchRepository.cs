@@ -2,7 +2,7 @@ using CatalogAPI.Data.Elasticsearch;
 using CatalogAPI.Domain.Entities;
 using CatalogAPI.Domain.Interfaces.Repository;
 using Elastic.Clients.Elasticsearch;
-using Elastic.Clients.Elasticsearch.Mapping;
+using Elastic.Transport.Products.Elasticsearch;
 
 namespace CatalogAPI.Data.Repositories.Elasticsearch;
 
@@ -30,7 +30,9 @@ public class SearchRepository : ISearchRepository
 
         // Id do documento = Id do jogo: reindexar um jogo editado
         // sobrescreve o documento existente, sem duplicar no índice.
-        await _client.IndexAsync(document, ElasticsearchClientFactory.IndexName, document.Id.ToString());
+        var response = await _client.IndexAsync(document, ElasticsearchClientFactory.IndexName, document.Id.ToString());
+
+        ThrowIfInvalid(response, $"Falha ao indexar o jogo {document.Id} no Elasticsearch");
     }
 
     public async Task<List<Game>> SearchAsync(string termo, int take = 20)
@@ -46,6 +48,8 @@ public class SearchRepository : ISearchRepository
                 )
             )
         );
+
+        ThrowIfInvalid(response, $"Falha ao buscar '{termo}' no Elasticsearch");
 
         // response.Documents já vem ordenado por _score (relevância) — é o
         // comportamento padrão do Elasticsearch pra uma query sem "sort"
@@ -70,7 +74,7 @@ public class SearchRepository : ISearchRepository
             return;
         }
 
-        await _client.Indices.CreateAsync(ElasticsearchClientFactory.IndexName, c => c
+        var response = await _client.Indices.CreateAsync(ElasticsearchClientFactory.IndexName, c => c
             .Mappings(m => m
                 .Properties<GameDocument>(p => p
                     .Text(t => t.Nome)
@@ -80,5 +84,19 @@ public class SearchRepository : ISearchRepository
                 )
             )
         );
+
+        ThrowIfInvalid(response, "Falha ao criar o índice 'games' no Elasticsearch");
+    }
+
+    // O client oficial NÃO lança exceção por padrão em falhas de requisição
+    // (conexão recusada, erro HTTP etc.) — ele só marca IsValidResponse
+    // como false. Sem essa checagem, erros de indexação/busca ficam
+    // completamente silenciosos.
+    private static void ThrowIfInvalid(ElasticsearchResponse response, string message)
+    {
+        if (!response.IsValidResponse)
+        {
+            throw new InvalidOperationException($"{message}: {response.DebugInformation}");
+        }
     }
 }
