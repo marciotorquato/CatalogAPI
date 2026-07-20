@@ -49,8 +49,11 @@ public class GameAppService : IGameAppService
 
     public async Task<ListarGamesPaginadoResponse> ListarGamesPaginado(ListarGamesPaginadoRequest request)
     {
-        var (jogos, totalRegistros) = await _gameService.ListarPaginado(request.NumeroPagina, request.TamanhoPagina, request.Filtro, request.Genero);
-        var totalPaginas = (int)Math.Ceiling(totalRegistros / (double)request.TamanhoPagina);
+        var numeroPagina = request.NumeroPagina ?? 1;
+        var tamanhoPagina = request.TamanhoPagina ?? 10;
+
+        var (jogos, totalRegistros) = await _gameService.ListarPaginado(numeroPagina, tamanhoPagina, request.Filtro, request.Genero);
+        var totalPaginas = (int)Math.Ceiling(totalRegistros / (double)tamanhoPagina);
         var jogosResponse = jogos.Select(g => new GameResponse
         {
             Id = g.Id,
@@ -63,12 +66,12 @@ public class GameAppService : IGameAppService
         }).ToList();
         return new ListarGamesPaginadoResponse
         {
-            PaginaAtual = request.NumeroPagina,
-            TamanhoPagina = request.TamanhoPagina,
+            PaginaAtual = numeroPagina,
+            TamanhoPagina = tamanhoPagina,
             TotalPaginas = totalPaginas,
             TotalRegistros = totalRegistros,
-            TemPaginaAnterior = request.NumeroPagina > 1,
-            TemProximaPagina = request.NumeroPagina < totalPaginas,
+            TemPaginaAnterior = numeroPagina > 1,
+            TemProximaPagina = numeroPagina < totalPaginas,
             Jogos = jogosResponse
         };
     }
