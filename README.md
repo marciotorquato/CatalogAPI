@@ -212,3 +212,5 @@ Este repositório evoluiu ao longo das fases do curso:
 - **Fase 2:** estrutura inicial do CRUD de jogos, fluxo de compra e mensageria (RabbitMQ, com uma etapa intermediária via Kafka antes da migração definitiva)
 - **Fase 3:** containerização, Kubernetes local e persistência poliglota com MongoDB (avaliações de jogos)
 - **Fase 4:** busca avançada com Elasticsearch (fuzzy search + relevância), deploy gerenciado em Azure AKS via Kong, e automação de CI/CD com GitHub Actions
+
+
