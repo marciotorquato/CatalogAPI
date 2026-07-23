@@ -4,6 +4,8 @@ Microsserviço responsável pelo **catálogo de jogos e biblioteca do usuário**
 
 ---
 
+
+
 ## 🧱 Tecnologias
 
 - .NET 9
